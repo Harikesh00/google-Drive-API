@@ -96,8 +96,8 @@ func main() {
 	// 	panic(fmt.Sprintf("Could not create dir: %v\n", err))
 	// }
 
-	//give your folder id here in which you want to upload
-	folderId := "1mCahL8fjxje8fcGq6h3lcgiDnglk3JuZ"
+	//give your folder id here in which you want to upload or create new directory
+	folderId := ""
 
 	// Step 4: create the file and upload
 	file, err := createFile(srv, f.Name(), "application/octet-stream", f, folderId)
