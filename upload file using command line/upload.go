@@ -151,7 +151,7 @@ func main() {
 	// 	panic(fmt.Sprintf("Could not create dir: %v\n", err))
 	// }
 
-	//give your drive folder id here in which you want to upload or create a new directory
+	//give your drive folder id here in which you want to upload or create a new directory 
 	folderId := ""
 
 	// Step 4: create the file and upload
