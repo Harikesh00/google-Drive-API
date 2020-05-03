@@ -21,7 +21,8 @@
 - step 2: Download the secret file and give the path in code.
 
 - step 3: create a folder on google drive and share it with new service account email (client_email) you got in secret file.
-        **Note:** If you will not share folder it will not visible to you afteer upload.
+
+     **Note:** If you will not share folder it will not visible to you afteer upload.
  
  - step 4: Run the code `go run upload.go`
 
