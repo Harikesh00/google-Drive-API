@@ -26,6 +26,13 @@
  
  - step 4: Run the code `go run upload.go`
 
+## Implement in 2024
+
+**Changed note:**
+- Modified some code.
+- Create folder in google drive.
+- add service account email as a editor for that folder. (share -> add email).
+
 ## For more info 
 - https://developers.google.com/drive/api/v3/quickstart/go
 - https://developers.google.com/identity/protocols/oauth2/service-account

@@ -2,111 +2,66 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 
 	"golang.org/x/oauth2/google"
-	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/drive/v3"
+	"google.golang.org/api/option"
 )
 
-//Use Service account
-func ServiceAccount(secretFile string) *http.Client {
-	b, err := ioutil.ReadFile(secretFile)
+func authenticateServiceAccount(ctx context.Context, serviceAccountFile string) (*drive.Service, error) {
+	b, err := os.ReadFile(serviceAccountFile)
 	if err != nil {
-		log.Fatal("error while reading the credential file", err)
+		return nil, fmt.Errorf("unable to read client secret file: %v", err)
 	}
-	var s = struct {
-		Email      string `json:"client_email"`
-		PrivateKey string `json:"private_key"`
-	}{}
-	json.Unmarshal(b, &s)
-	config := &jwt.Config{
-		Email:      s.Email,
-		PrivateKey: []byte(s.PrivateKey),
-		Scopes: []string{
-			drive.DriveScope,
-		},
-		TokenURL: google.JWTTokenURL,
+
+	config, err := google.JWTConfigFromJSON(b, drive.DriveFileScope)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse client secret file to config: %v", err)
 	}
-	client := config.Client(context.Background())
-	return client
+
+	client := config.Client(ctx)
+
+	return drive.NewService(ctx, option.WithHTTPClient(client))
 }
 
-// func createFolder(service *drive.Service, name string, parentId string) (*drive.File, error) {
-// 	d := &drive.File{
-// 		Name:     name,
-// 		MimeType: "application/vnd.google-apps.folder",
-// 		Parents:  []string{parentId},
-// 	}
-
-// 	file, err := service.Files.Create(d).Do()
-
-// 	if err != nil {
-// 		log.Println("Could not create dir: " + err.Error())
-// 		return nil, err
-// 	}
-
-// 	return file, nil
-// }
-
-func createFile(service *drive.Service, name string, mimeType string, content io.Reader, parentId string) (*drive.File, error) {
-	f := &drive.File{
-		MimeType: mimeType,
-		Name:     name,
-		Parents:  []string{parentId},
-	}
-	file, err := service.Files.Create(f).Media(content).Do()
-
+func uploadFile(srv *drive.Service, filePath, folderID string) error {
+	file, err := os.Open(filePath)
 	if err != nil {
-		log.Println("Could not create file: " + err.Error())
-		return nil, err
+		return fmt.Errorf("unable to open file: %v", err)
+	}
+	defer file.Close()
+
+	fileMetadata := &drive.File{
+		MimeType: "application/octet-stream",
+		Name:     "test.txt",
+		Parents:  []string{folderID}, // Replace with the actual folder ID
 	}
 
-	return file, nil
+	driveFile, err := srv.Files.Create(fileMetadata).Media(file).Do()
+	if err != nil {
+		return fmt.Errorf("unable to create file: %v", err)
+	}
+
+	fmt.Printf("File ID: %s\n", driveFile.Id)
+	return nil
 }
 
 func main() {
-	// Step 1: Open  file
-	f, err := os.Open("test.txt")
+	ctx := context.Background()
+	serviceAccountFile := "client_secret.json" // Replace with the correct path
 
+	srv, err := authenticateServiceAccount(ctx, serviceAccountFile)
 	if err != nil {
-		panic(fmt.Sprintf("cannot open file: %v", err))
+		log.Fatalf("Error initializing Drive service: %v", err)
 	}
 
-	defer f.Close()
+	filePath := "test.txt"                          // Ensure the correct file path
+	folderID := "1vZLmkm7ny9euaGLlIu7FmRecQbS3JDZ3" // Replace with the actual folder ID
 
-	// Step 2: Get the Google Drive service
-	client := ServiceAccount("client_secret.json")
-
-	srv, err := drive.New(client)
-	if err != nil {
-		log.Fatalf("Unable to retrieve drive Client %v", err)
+	if err := uploadFile(srv, filePath, folderID); err != nil {
+		log.Fatalf("Error uploading file: %v", err)
 	}
-
-	// Step 3: Create directory
-	// dir, err := createFolder(srv, "New Folder", "root")
-
-	// if err != nil {
-	// 	panic(fmt.Sprintf("Could not create dir: %v\n", err))
-	// }
-
-	//give your folder id here in which you want to upload or create new directory
-	folderId := ""
-
-	// Step 4: create the file and upload
-	file, err := createFile(srv, f.Name(), "application/octet-stream", f, folderId)
-
-	if err != nil {
-		panic(fmt.Sprintf("Could not create file: %v\n", err))
-	}
-
-	fmt.Printf("File '%s' successfully uploaded", file.Name)
-	fmt.Printf("\nFile Id: '%s' ", file.Id)
-
 }
